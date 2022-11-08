@@ -7,7 +7,9 @@ Nonetheless, please enjoy the projects that are listed here. They mainly include
 In the main directory, there are the following directories:
 
 neural_network_gpu/
+
 mesh_graph/
+
 uganda_patient_db/
 
 While descriptions may be added in the future, for now, let the following brief descriptions of each folder suffice.
