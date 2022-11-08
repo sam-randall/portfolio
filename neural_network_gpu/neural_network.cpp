@@ -50,7 +50,6 @@ void print_gpu_mat( const nn_real* mat, int M, int N) {
     nn_real* localW;
     localW = (nn_real*) malloc(sizeof(nn_real) * M * N);
     cudaMemcpy(localW, mat, sizeof(nn_real) * M * N, cudaMemcpyDeviceToHost);
-    // check_launch("norm_gpu_mat_memcpy");
     arma::Mat<nn_real> w = arma::Mat<nn_real>(localW, M, N);
     free(localW);
     w.print();
@@ -70,7 +69,6 @@ nn_real parallel_norms(const NeuralNetwork& nn, const std::vector<nn_real*>& wei
     const nn_real* dw = weights[i];
     int w_elements = nn.W[i].n_cols * nn.W[i].n_rows;
     gpu_norm(dw, &sums[i], w_elements);
-    // check_launch("gpu_norm");
   }
 
   nn_real* sum_out;
@@ -79,7 +77,6 @@ nn_real parallel_norms(const NeuralNetwork& nn, const std::vector<nn_real*>& wei
   nn_real* local_sum;
   local_sum = (nn_real*)malloc(1 * sizeof(nn_real));
   sum(sums, sum_out, nn.num_layers);
-  // check_launch("sum_regularization");
 
   cudaMemcpy(local_sum, sum_out, sizeof(nn_real), cudaMemcpyDeviceToHost);
   cudaFree(sums);
@@ -160,15 +157,11 @@ void parallel_feedforward(NeuralNetwork& nn, const std::vector<nn_real*>& weight
   cache.z.resize(2);
   cache.a.resize(2);
 
-  // assert(X.n_rows == nn.W[0].n_cols);
-
   nn_real beta = 1.0;
   nn_real alpha = 1.0;
 
   
   const nn_real* W0_ = weights[0];
-// const nn_real* X_ = X.memptr();
-  // cudaMemcpy(in, X_, X.n_rows * N * sizeof(nn_real), cudaMemcpyHostToDevice);
   cache.X = in;
 
   broadcast_rowwise(biases[0], layer1, nn.W[0].n_rows, N);
@@ -191,12 +184,9 @@ void parallel_feedforward(NeuralNetwork& nn, const std::vector<nn_real*>& weight
 
   myGEMM(W1_, sigmoid_out, layer2, &alpha, &beta,
            nn.W[1].n_rows,  N, nn.W[1].n_cols );
-  // check_launch("gemm2 gemm");
-
   cache.z[1] = layer2;
   
   softmax_gpu(layer2, out, nn.W[1].n_rows, N);
-  // check_launch("softmax_gpu");
 
   cache.a[1] = cache.yc = out;
 }
@@ -214,7 +204,6 @@ void backprop(NeuralNetwork& nn, const arma::Mat<nn_real>& y, nn_real reg,
   bpgrads.db.resize(2);
   int N = y.n_cols;
 
-  // std::cout << "backprop " << bpcache.yc << "\n";
   arma::Mat<nn_real> diff = (1.0 / N) * (bpcache.yc - y);
 
   bpgrads.dW[1] = diff * bpcache.a[0].t() + reg * nn.W[1];
@@ -228,11 +217,11 @@ void backprop(NeuralNetwork& nn, const arma::Mat<nn_real>& y, nn_real reg,
 }
 
 void cpu_transpose(const nn_real* mat, nn_real* out, int M, int N) {
-  // check_launch("begin norm gpu");
+
   nn_real* localW;
     localW = (nn_real*) malloc(sizeof(nn_real) * M * N);
     cudaMemcpy(localW, mat, sizeof(nn_real) * M * N, cudaMemcpyDeviceToHost);
-    // check_launch("norm_gpu_mat_memcpy");
+
     arma::Mat<nn_real> w = arma::Mat<nn_real>(localW, M, N);
     arma::Mat<nn_real> transpose = w.t();
     nn_real* t_ = transpose.memptr();
@@ -509,16 +498,7 @@ void parallel_train(NeuralNetwork& nn, const arma::Mat<nn_real>& X,
   int iter = 0;
 
   for (int epoch = 0; epoch < epochs; ++epoch) {
-    
-    
-    // Kill some mem copies.
-
-    
-
     int num_mega_batches = num_batches / 8;
-
-
-
     for (int batch = 0; batch < num_batches; ++batch) {
 
       
@@ -528,7 +508,6 @@ void parallel_train(NeuralNetwork& nn, const arma::Mat<nn_real>& X,
         int this_batch_size = (last_col - batch * batch_size) + 1; // inclusive.
 
         if (this_batch_size % num_procs != 0) {
-          // std:cerr << "batch_size % num_procs != 0" << std::endl;
           throw;
         }
 
@@ -569,8 +548,6 @@ void parallel_train(NeuralNetwork& nn, const arma::Mat<nn_real>& X,
         cudaMemcpy(y_in, y_ptr, n_cols_in_batch * nn.H[2] * sizeof(nn_real), cudaMemcpyHostToDevice);
         parallel_backprop(nn, weights, biases, y_in, reg, bpcache, bpgrads, n_cols_in_batch, backprop_d_ptrs);
 
-        
-        // check_launch("Parallel Back prop");
         if (print_every <= 0) {
           print_flag = batch == 0;
         } else {
@@ -610,10 +587,7 @@ void parallel_train(NeuralNetwork& nn, const arma::Mat<nn_real>& X,
 
         for (int i = 0; i < nn.num_layers; i++) {
           gradient_update(bpgrads.dW[i], weights[i], learning_rate / num_procs, nn.W[i].n_rows * nn.W[i].n_cols);
-          // check_launch("gradient update w0");
-
           gradient_update(bpgrads.db[i], biases[i], learning_rate / num_procs, nn.H[i + 1]);
-          // check_launch("gradient update b0");
         }
 
         delete [] tempbuf;
@@ -631,7 +605,6 @@ void parallel_train(NeuralNetwork& nn, const arma::Mat<nn_real>& X,
               nn_real* raw_b = nn.b[i].memptr();
               cudaMemcpy(raw_w, weights[i], float_size * n_w_elements, cudaMemcpyDeviceToHost);
               cudaMemcpy(raw_b, biases[i], float_size * n_b_elements, cudaMemcpyDeviceToHost);
-              // check_launch("cuda mem copy collect.");
               nn.W[i] = arma::Mat<nn_real>(raw_w, nn.W[i].n_rows, nn.W[i].n_cols);
               nn.b[i] = arma::Col<nn_real>(raw_b, nn.H[i + 1]);
 
@@ -654,7 +627,6 @@ void parallel_train(NeuralNetwork& nn, const arma::Mat<nn_real>& X,
             nn_real* raw_b = nn.b[i].memptr();
             cudaMemcpy(raw_w, weights[i], float_size * n_w_elements, cudaMemcpyDeviceToHost);
             cudaMemcpy(raw_b, biases[i], float_size * n_b_elements, cudaMemcpyDeviceToHost);
-            // check_launch("cuda mem copy collect.");
             nn.W[i] = arma::Mat<nn_real>(raw_w, nn.W[i].n_rows, nn.W[i].n_cols);
             nn.b[i] = arma::Col<nn_real>(raw_b, nn.H[i + 1]);
 

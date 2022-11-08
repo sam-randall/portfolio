@@ -7,12 +7,6 @@
 
 
 
-/*
-Routine to perform an in-place GEMM operation, i.e., C := alpha*A*B + beta*C
-*/
-
-// A note that this code was adapted for this example from online but I 
-// made sure to understand it.
 __global__ 
 void reduce_sum(const nn_real* arr, nn_real* out, int N) {
 
@@ -57,7 +51,7 @@ void rowwise_sum_kernel(const nn_real* in, nn_real* out, int M, int N) {
   int x = blockDim.x * blockIdx.x + threadIdx.x;
 
   if (x < M) {
-    nn_real sum = 0; // TODO Pre compute this.
+    nn_real sum = 0;
     for(int i = 0; i < N; i++) {
       sum += in[x + M * i];
     }
@@ -107,30 +101,15 @@ void __tile_gemm(const nn_real* A, const nn_real*  B, nn_real*  C, nn_real alpha
   int n_B_rows = K;
   int n_B_cols = N;
   int c_n_rows = M;
-  // if (row_a < M) {
-  //   for(int i = 0; i < blockDim.x; i++) {
-  //     int c_col = (globalOffsetX + i);
-  //     if (c_col < N) {
-  //       C[row_a + c_n_rows * c_col] = 0; // zero it out.
-  //     }
-  //   }
-  // }
 
-  // __syncthreads();
   // Iterate across A's cols.
   nn_real out[16];
   for(int i = 0; i < 16; i++) {
     out[i] = 0;
   }
-  // out[threadIdx.x] = 0;
-  // __syncthreads();
   
 
   while(k < K) {
-
-    // if(thread_id == 0) {
-    //   printf("k: %i\n", k);
-    // }
 
     __shared__ nn_real b_block[4][16];
     int row_B = k + threadIdx.y; // threadIdx.y : [0..<k_increment]
@@ -173,7 +152,6 @@ void __tile_gemm(const nn_real* A, const nn_real*  B, nn_real*  C, nn_real alpha
         break;
       } else {
         out[i] += dot_prod;
-        // C[row_a + c_n_rows * c_col] += dot_prod * alpha;
       }
     }
     k += blockDim.y;
@@ -252,9 +230,6 @@ void mm_kernel_external_mem(const nn_real* A, const nn_real*  B, nn_real* out, n
     return;
   }
 
-
-
-  // nn_real beta_c = beta * C[M * x + y];
   nn_real mat_mul_sum = 0.0;
 
   // Fix the ith row of A, fix the jth col of B.
@@ -307,7 +282,6 @@ __global__ void gemm_simple(const nn_real* __restrict__ A, const nn_real* __rest
     int n_C_rows = M;
     int n_C_cols = N;
 
-  // THESE NEED TO BE NOT MUTUALLY EXCLUSIVE!
     if (a_col >= n_A_cols) {
       A_shared[threadIdx.y][threadIdx.x] = 0.0;
     } else if (c_row >= n_C_rows) {
@@ -369,7 +343,6 @@ int myGEMM(const nn_real* __restrict__ A, const nn_real* __restrict__ B,
 int myGEMM_SLOW(const nn_real* __restrict__ A, const nn_real* __restrict__ B,
            nn_real* __restrict__ C, nn_real* alpha, nn_real* beta,
            int M, int N, int K) {
-    // std::cout << "new gemm" << std::endl;
 
     int blockSizeX = 32;
     int blockSizeY = 32;
@@ -382,14 +355,12 @@ int myGEMM_SLOW(const nn_real* __restrict__ A, const nn_real* __restrict__ B,
     mm_kernel_slow<<<blocks, threads>>>(A, B, C, *alpha, *beta, M, N, K);
     
     
-    check_launch("gemm");
     return 0;
 }
 
 int myGEMM_attempt(const nn_real* __restrict__ A, const nn_real* __restrict__ B,
            nn_real* __restrict__ C, nn_real* alpha, nn_real* beta,
            int M, int N, int K) {
-    // std::cout << "new gemm" << std::endl;
 
     int blockSizeX = 16;
     int blockSizeY = 4;
@@ -402,7 +373,6 @@ int myGEMM_attempt(const nn_real* __restrict__ A, const nn_real* __restrict__ B,
     __tile_gemm<<<blocks, threads>>>(A, B, C, *alpha, *beta, M, N, K);
     
     
-    check_launch("gemm");
     return 0;
 }
 
@@ -417,14 +387,12 @@ int myGEMM(const nn_real* __restrict__ A, const nn_real* __restrict__ B,
     int grid_x = (N + 32 - 1) / 32;
     dim3 blocks(grid_x, grid_y);
     gemm_kernel_external_mem<<<blocks, threads>>>(A, B, C, out, *alpha, *beta, M, N, K);
-    // check_launch("gemm_ext");
     return 0;
 }
 
 void sigmoid_gpu(const nn_real* __restrict__ in, nn_real* __restrict__ out, int N) {
   int blocks = (N + 1024 - 1) / 1024;
   sigmoid_k<<<blocks, 1024>>>(in, out, N);
-  // check_launch("sigmoid_gpu");
 }
 
 
@@ -434,7 +402,6 @@ void softmax_gpu(const nn_real* __restrict__ A, nn_real* __restrict__ out, int M
   int grid_y = (M * 32 - 1) / 32;
   dim3 blocks(grid_x, grid_y);
   softmax_k<<<blocks, threads>>>(A, out, M, N);
-  // check_launch("softmax_gpu");
 }
 
 nn_real ce_gpu(const nn_real* yc, const nn_real* y, int M, int N) {
@@ -443,22 +410,16 @@ nn_real ce_gpu(const nn_real* yc, const nn_real* y, int M, int N) {
   int grid_y = (M * 32 - 1) / 32;
   dim3 blocks(grid_x, grid_y);
   nn_real* out;
-  // check_launch("pre cuda malloc ce gpu");
-  cudaMalloc((void**)&out, sizeof(nn_real) * N);
-  // check_launch("cuda_malloc_ce_gpu");
-  
+  cudaMalloc((void**)&out, sizeof(nn_real) * N);  
   cross_entropy_no_reduce_k<<<blocks, threads>>>(yc, y, M, N, out);
-  // check_launch("cross_entropy_no_reduce_k");
   nn_real* loss;
   cudaMalloc((void**)&loss, sizeof(nn_real) * 1);
-  // check_launch("cuda_malloc_ce_gpu_loss");
   sum(out, loss, N);
   // check_launch("ce_sum");
   nn_real* loss_cpu; 
 
   loss_cpu = (nn_real*) malloc(1 * sizeof(nn_real));
   cudaMemcpy(loss_cpu, loss, 1 * sizeof(nn_real), cudaMemcpyDeviceToHost);
-  // check_launch("cuda_memcpy_loss");
   cudaFree(out);
   cudaFree(loss);
 
@@ -485,7 +446,6 @@ void gpu_norm(const nn_real* w, nn_real* out, int N) {
 void sum(const nn_real* a, nn_real* out, int N) {
   int grid_x = (N * 1024 - 1) / 1024;
   reduce_sum<<<grid_x, 1024>>>(a, out, N);
-  // check_launch("sum reduce");
 }
 
 
@@ -528,16 +488,13 @@ void sigmoid_derivative_kernel(const nn_real* a, const nn_real* b, nn_real* out,
 void sigmoid_derivative(const nn_real* activation, const nn_real* sig_result, nn_real* out, int N){
   int blocks = (N + 1024 - 1) / 1024;
   sigmoid_derivative_kernel<<<blocks, 1024>>>(activation, sig_result, out, N);
-  // check_launch("Sigmoid kernel");
 }
-
 
 void rowwise_sum(const nn_real* a, nn_real* out, int M, int N) {
   int blocks = (M + 1024 - 1) / 1024;
   rowwise_sum_kernel<<<blocks, 1024>>>(a, out, M, N);
 
 }
-
 
 __global__
 void scaled_difference_kernel(const nn_real* a, const nn_real* b, nn_real* c, int total, nn_real scalar) {
@@ -553,7 +510,6 @@ void scaled_difference_kernel(const nn_real* a, const nn_real* b, nn_real* c, in
 void scaled_difference(const nn_real* a, const nn_real* b, nn_real* out, int M, int N){
   int grid_x = (N * 1024 - 1) / 1024;
   scaled_difference_kernel<<<grid_x, 1024>>>(a, b, out, M * N, ((nn_real) 1.0) / N);
-  // check_launch("scaled difference");
 }
 
 
