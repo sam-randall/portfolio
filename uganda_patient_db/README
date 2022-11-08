@@ -1,0 +1,50 @@
+
+Uganda Backend.
+
+demos/
+	- contains curl scripts which demonstrate how our backend works.
+
+
+Please type 
+
+
+cd nodejs-postgresql to change your working directory to nodejs-postgresql
+
+At this point, how the app is set up is in app.js, including what the endpoints are, and how they can be accessed.
+
+nodejs-postgreql subcontents...
+
+services/ 
+	- contains each endpoints' implementation. i.e the logic that updates the database.
+routes/
+	- contains the information for what you can do at a given endpoint (i.e post, patch, update, delete, get)
+package.json
+	- contains at the bottom the scripts. It provides the implementation that allows you to the commands listed
+          below.
+
+config.js
+	- contains login information. please get a copy of this from Sam Randall (samrandall@stanford.edu)
+
+seed.js
+	- file that provides a seeding script for patients table currently but more in the future.
+
+setup.js
+	- file that provides a setup script which builds all of our tables
+          including patients, forms (which is the connection table)
+
+
+Commands Listed Below:
+
+npm start
+	will launch our project on localhost:3000
+	you can then use our apps by sending CURL requests of the form seen in demos.
+
+npm setup 
+	will totally wipe all the tables and build them from scratch.
+
+npm seed
+	can be run once you have set up the tables and it will generate FAKE patient data. 
+	From this point you can add forms for a given patient ID using the forms/add endpoint.
+
+
+
