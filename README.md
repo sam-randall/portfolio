@@ -14,7 +14,7 @@ uganda_patient_db/
 
 While descriptions may be added in the future, for now, let the following brief descriptions of each folder suffice.
 
-neural_network_gpu: For a course in Parallel Programming at Stanford University, we were assigned to train an MNIST digit recognizer from scratch and implement each CUDA kernel ourselves. Note that this is just the work I did (the helper functions). As is, the program will not run (there is no main method in any of the files). Note that does not follow best practices in regards to commenting. I worked on this in Spring 2022. 
+neural_network_gpu: For a course in Parallel Programming at Stanford University, we were assigned to train an MNIST digit recognizer from scratch and implement each CUDA kernel ourselves. Note that this is just the work I did (the helper functions). As is, the program will not run (there is no main method in any of the files). I worked on this in Spring 2022. 
 
 mesh_graph: For a course in Advanced Software Development, we spent the quarter implementing standard operations in a Graph data structure in C++ including add_node, remove_node, custom iterators and more. We used this to model mesh fabric and were able to visualize the physics of it wrapping around a ball or caught in the wind for example by implementing various functors throughout the quarter. I worked on this in Winter 2022. Note that various dependencies including thrust, mtl4, CME212 are not included.
 
