@@ -24,5 +24,5 @@ Other Private Projects:
 
 1. I also have worked for Athena Security as an iOS Engineer. There, I developed an iPad app that paired with a thermal camera over local WiFi and used facial recognition & tracking to detect peoples' temperatures, and report them to various backend integrations. As part of this, I worked closely with the backend engineer to submit data in appropriate format.
 
-2. I also founded Cocoa (in stealth). Cocoa is a multi-modal communication platform. Cocoa provides an advanced visualization UI while people are having conversations and involves integration with combinations of video, audio, images and text. Uploading and downloading data of all type to a central server to allow users to communicate with one another is what powers this so I work closely with my cofounder and backend engineer to integrate with its endpoints  and help design its setup.
+2. I also founded Cocoa (in stealth). Cocoa is a multi-modal communication platform. Cocoa provides an advanced visualization UI while people are having conversations and involves integration with combinations of video, audio, images and text. Cocoa uploads and downloads data to a central server to allow users to communicate with one another so I work closely with my cofounder and backend engineer to integrate with its endpoints and help design its setup.
 
